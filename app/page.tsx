@@ -28,7 +28,7 @@ import { EQUIPMENT_SETS, SET_ITEMS } from "./data/equipmentSets";
 
 export default function NihongoDojo() {
   const { user, loading: authLoading, signUp, signIn, signOut } = useAuth();
-  const { gs, setGs, loaded, bumpStreak } = useGameState();
+  const { gs, setGs, loaded, bumpStreak } = useGameState(user?.id ?? null);
   const { toast, showToast } = useToast();
   const { dueCards, reviewCard, unlockCards, stats: srsStats, nextInterval } = useSRS(gs, setGs);
   const [view, setView] = useState<View>("dashboard");
@@ -92,7 +92,7 @@ export default function NihongoDojo() {
     // Always force placement test for new users (0 XP, 0 lessons)
     // Clear any stale placement data from previous users/testing
     if (gs.xp === 0 && gs.completed.size === 0) {
-      if (typeof window !== "undefined") localStorage.removeItem("nihongo-dojo-placement");
+      if (typeof window !== "undefined") localStorage.removeItem(`nihongo-dojo-placement-${user?.id || "anon"}`);
       setNeedsPlacement(true);
     }
   }, [gs.xp, gs.completed.size]);
@@ -124,11 +124,11 @@ export default function NihongoDojo() {
       <div style={{ background: "#faf7f5", minHeight: "100vh", fontFamily: "Georgia,serif", padding: "40px 20px" }}>
         <PlacementTest
           onFinish={(book) => {
-            if (typeof window !== "undefined") localStorage.setItem("nihongo-dojo-placement", book);
+            if (typeof window !== "undefined") localStorage.setItem(`nihongo-dojo-placement-${user?.id || "anon"}`, book);
             setNeedsPlacement(false);
           }}
           onSkip={() => {
-            if (typeof window !== "undefined") localStorage.setItem("nihongo-dojo-placement", "genki1");
+            if (typeof window !== "undefined") localStorage.setItem(`nihongo-dojo-placement-${user?.id || "anon"}`, "genki1");
             setNeedsPlacement(false);
           }}
         />
@@ -141,7 +141,7 @@ export default function NihongoDojo() {
       <Nav gs={gs} view={view} setView={setView} dueCount={srsStats.due} />
       <div style={{ marginLeft: 220, flex: 1, padding: "28px 32px", maxWidth: "calc(100vw - 220px)", overflowY: "auto", minHeight: "100vh" }}>
         {view === "dashboard" && <Dashboard gs={gs} startLesson={startLesson} setView={setView} srsStats={srsStats} />}
-        {view === "course" && <Course gs={gs} startLesson={startLesson} />}
+        {view === "course" && <Course gs={gs} startLesson={startLesson} userId={user?.id} />}
         {view === "lessons" && <StudyHall gs={gs} activeBook={activeBook} setActiveBook={setActiveBook} startLesson={startLesson} />}
         {view === "lesson" && lesson && (
           <LessonView

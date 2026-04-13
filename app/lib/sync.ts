@@ -1,7 +1,8 @@
 import { createClient } from "./supabase/client";
 import type { GameState, TempleState, HeroState, AwakeningState, SRSCard } from "../types";
 
-const STORAGE_KEY = "nihongo-dojo-state";
+const OLD_GLOBAL_KEY = "nihongo-dojo-state"; // legacy shared key
+function getStorageKey(userId: string): string { return `nihongo-dojo-state-${userId}`; }
 const SYNC_DEBOUNCE = 2000;
 
 interface SerializedState {
@@ -53,10 +54,23 @@ export function freshState(): GameState {
 
 // ── Local storage read/write (immediate, offline-first) ──
 
-export function loadFromLocalStorage(): GameState {
+export function loadFromLocalStorage(userId: string): GameState {
   if (typeof window === "undefined") return freshState();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getStorageKey(userId);
+    let raw = localStorage.getItem(key);
+
+    // Migration: if per-user key doesn't exist, try old global key
+    if (!raw) {
+      const globalRaw = localStorage.getItem(OLD_GLOBAL_KEY);
+      if (globalRaw) {
+        // Migrate old global data to this user's key, then delete global
+        localStorage.setItem(key, globalRaw);
+        localStorage.removeItem(OLD_GLOBAL_KEY);
+        raw = globalRaw;
+      }
+    }
+
     if (!raw) return freshState();
     const s: SerializedState = JSON.parse(raw);
     return deserialize(s);
@@ -65,9 +79,15 @@ export function loadFromLocalStorage(): GameState {
   }
 }
 
-export function saveToLocalStorage(gs: GameState) {
+export function saveToLocalStorage(userId: string, gs: GameState) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize(gs)));
+  localStorage.setItem(getStorageKey(userId), JSON.stringify(serialize(gs)));
+}
+
+/** Remove the old shared global key if it still exists */
+export function clearGlobalStorage() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(OLD_GLOBAL_KEY);
 }
 
 // ── Serialization helpers ──
@@ -258,11 +278,13 @@ export function mergeStates(local: GameState, remote: GameState): GameState {
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export function debouncedSyncToSupabase(userId: string | null, gs: GameState) {
-  // Always save locally immediately
-  saveToLocalStorage(gs);
+  // Only save if we have a userId — no anonymous saves
+  if (!userId) return;
+
+  // Save to per-user localStorage immediately
+  saveToLocalStorage(userId, gs);
 
   // Debounce Supabase write
-  if (!userId) return;
   if (syncTimeout) clearTimeout(syncTimeout);
   syncTimeout = setTimeout(() => {
     saveToSupabase(userId, gs);

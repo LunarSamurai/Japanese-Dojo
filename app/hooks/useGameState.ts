@@ -7,62 +7,76 @@ import {
   loadFromSupabase,
   mergeStates,
   debouncedSyncToSupabase,
+  clearGlobalStorage,
 } from "../lib/sync";
-import { createClient } from "../lib/supabase/client";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function useGameState() {
+/**
+ * Per-user game state hook.
+ * @param userId - The authenticated user's ID. null = not logged in yet.
+ * State only loads once userId is provided. Each user gets isolated localStorage + Supabase data.
+ */
+export function useGameState(userId: string | null) {
   const [gs, setGsRaw] = useState<GameState>(freshState);
   const [loaded, setLoaded] = useState(false);
-  const userIdRef = useRef<string | null>(null);
+  const userIdRef = useRef<string | null>(userId);
 
-  // Load state: try Supabase first, merge with localStorage, fallback to localStorage
+  // Keep ref in sync
   useEffect(() => {
-    async function init() {
-      const local = loadFromLocalStorage();
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+    userIdRef.current = userId;
+  }, [userId]);
 
-      if (session?.user) {
-        userIdRef.current = session.user.id;
-        const remote = await loadFromSupabase(session.user.id);
-        if (remote) {
-          // Merge local + remote (handles offline changes)
-          const merged = mergeStates(local, remote);
-          setGsRaw(merged);
-        } else {
-          // First login — use local data (migration from localStorage)
-          setGsRaw(local);
-          // Save local data to Supabase
-          debouncedSyncToSupabase(session.user.id, local);
-        }
+  // Load state when userId becomes available (auth resolved)
+  useEffect(() => {
+    if (!userId) {
+      // Not logged in — show fresh state, don't load anything
+      setGsRaw(freshState());
+      setLoaded(true);
+      return;
+    }
+
+    const uid = userId; // capture for async closure (TypeScript narrowing)
+    async function init() {
+      // Clean up old global key if it exists (migration)
+      clearGlobalStorage();
+
+      // Load per-user localStorage
+      const local = loadFromLocalStorage(uid);
+
+      // Load from Supabase (authoritative)
+      const remote = await loadFromSupabase(uid);
+
+      if (remote) {
+        // Merge per-user local cache with Supabase (handles offline changes)
+        const merged = mergeStates(local, remote);
+        setGsRaw(merged);
       } else {
-        // Not authenticated — use localStorage only
-        setGsRaw(local);
+        // First login for this user — check if local has real data (migrated from old global key)
+        if (local.xp > 0 || local.completed.size > 0) {
+          // Migration case: local has data from old global key
+          setGsRaw(local);
+          debouncedSyncToSupabase(uid, local);
+        } else {
+          // Truly fresh user
+          setGsRaw(freshState());
+        }
       }
       setLoaded(true);
     }
-    init();
-  }, []);
 
-  // Sync to both localStorage and Supabase on state changes
+    setLoaded(false);
+    init();
+  }, [userId]);
+
+  // Sync to per-user localStorage + Supabase on state changes
   useEffect(() => {
-    if (loaded) {
+    if (loaded && userIdRef.current) {
       debouncedSyncToSupabase(userIdRef.current, gs);
     }
   }, [gs, loaded]);
-
-  // Listen for auth changes to update userId
-  useEffect(() => {
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      userIdRef.current = session?.user?.id ?? null;
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   const setGs = useCallback(
     (updater: GameState | ((prev: GameState) => GameState)) => {

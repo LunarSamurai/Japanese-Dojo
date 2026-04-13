@@ -7,9 +7,12 @@ import { PlacementTest } from "./PlacementTest";
 interface CourseProps {
   gs: GameState;
   startLesson: (l: Lesson) => void;
+  userId?: string | null;
 }
 
-const PLACEMENT_KEY = "nihongo-dojo-placement";
+function getPlacementKey(userId?: string | null): string {
+  return `nihongo-dojo-placement-${userId || "anon"}`;
+}
 
 interface Unit {
   id: BookId;
@@ -31,12 +34,12 @@ const UNITS: Unit[] = [
   { id: "advanced", title: "Unit 7 · Advanced Mastery", jp: "上級", subtitle: "JLPT N1 level — advanced grammar & vocabulary", level: "N1", color: "#b91c5c", lessons: ADVANCED },
 ];
 
-export function Course({ gs, startLesson }: CourseProps) {
+export function Course({ gs, startLesson, userId }: CourseProps) {
   const [placement, setPlacement] = useState<BookId | null>(null);
   const [showTest, setShowTest] = useState(false);
 
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem(PLACEMENT_KEY) : null;
+    const stored = typeof window !== "undefined" ? localStorage.getItem(getPlacementKey(userId)) : null;
     if (stored) {
       setPlacement(stored as BookId);
     } else {
@@ -45,13 +48,13 @@ export function Course({ gs, startLesson }: CourseProps) {
   }, []);
 
   const finishTest = (book: BookId) => {
-    localStorage.setItem(PLACEMENT_KEY, book);
+    localStorage.setItem(getPlacementKey(userId), book);
     setPlacement(book);
     setShowTest(false);
   };
 
   const skipTest = () => {
-    localStorage.setItem(PLACEMENT_KEY, "genki1");
+    localStorage.setItem(getPlacementKey(userId), "genki1");
     setPlacement("genki1");
     setShowTest(false);
   };
