@@ -5,7 +5,6 @@ import {
   freshState,
   loadFromLocalStorage,
   loadFromSupabase,
-  mergeStates,
   debouncedSyncToSupabase,
   clearGlobalStorage,
 } from "../lib/sync";
@@ -16,51 +15,51 @@ function today(): string {
 
 /**
  * Per-user game state hook.
- * @param userId - The authenticated user's ID. null = not logged in yet.
- * State only loads once userId is provided. Each user gets isolated localStorage + Supabase data.
+ * Supabase is AUTHORITATIVE. localStorage is only a per-user offline cache.
+ * No cross-user merging ever happens.
  */
 export function useGameState(userId: string | null) {
   const [gs, setGsRaw] = useState<GameState>(freshState);
   const [loaded, setLoaded] = useState(false);
   const userIdRef = useRef<string | null>(userId);
 
-  // Keep ref in sync
   useEffect(() => {
     userIdRef.current = userId;
   }, [userId]);
 
-  // Load state when userId becomes available (auth resolved)
+  // Load state when userId becomes available
   useEffect(() => {
     if (!userId) {
-      // Not logged in — show fresh state, don't load anything
       setGsRaw(freshState());
       setLoaded(true);
       return;
     }
 
-    const uid = userId; // capture for async closure (TypeScript narrowing)
+    const uid = userId;
     async function init() {
-      // Clean up old global key if it exists (migration)
+      // Clean up old shared global key
       clearGlobalStorage();
 
-      // Load per-user localStorage
-      const local = loadFromLocalStorage(uid);
-
-      // Load from Supabase (authoritative)
+      // Step 1: Try Supabase (authoritative source of truth)
       const remote = await loadFromSupabase(uid);
 
       if (remote) {
-        // Merge per-user local cache with Supabase (handles offline changes)
-        const merged = mergeStates(local, remote);
-        setGsRaw(merged);
+        // Supabase has data — USE IT DIRECTLY (no merge with localStorage)
+        console.log(`[GameState] Loaded from Supabase for user ${uid.slice(0, 8)}...`);
+        setGsRaw(remote);
+        // Also cache to per-user localStorage for offline use
+        debouncedSyncToSupabase(uid, remote);
       } else {
-        // First login for this user — check if local has real data (migrated from old global key)
+        // No Supabase record — check per-user localStorage (offline cache)
+        const local = loadFromLocalStorage(uid);
         if (local.xp > 0 || local.completed.size > 0) {
-          // Migration case: local has data from old global key
+          console.log(`[GameState] Using per-user localStorage cache for ${uid.slice(0, 8)}...`);
           setGsRaw(local);
+          // Push local cache to Supabase
           debouncedSyncToSupabase(uid, local);
         } else {
-          // Truly fresh user
+          // Truly fresh user — start clean
+          console.log(`[GameState] Fresh state for new user ${uid.slice(0, 8)}...`);
           setGsRaw(freshState());
         }
       }
@@ -71,7 +70,7 @@ export function useGameState(userId: string | null) {
     init();
   }, [userId]);
 
-  // Sync to per-user localStorage + Supabase on state changes
+  // Sync on every state change
   useEffect(() => {
     if (loaded && userIdRef.current) {
       debouncedSyncToSupabase(userIdRef.current, gs);

@@ -196,7 +196,8 @@ export async function saveToSupabase(userId: string, gs: GameState) {
   const { error } = await supabase.from("game_state").upsert(fullPayload);
 
   if (error) {
-    console.warn("Supabase sync (full) failed, trying core-only:", error.message || error.code || JSON.stringify(error));
+    console.warn("Supabase sync (full) failed:", error.message || error.code || error.details || JSON.stringify(error));
+    console.warn("Hint: Run supabase/migrations/002_omamori_hero.sql and 003_awakening.sql in your Supabase SQL Editor");
     // Fallback: only send columns from the original schema
     const { error: fallbackError } = await supabase.from("game_state").upsert({
       user_id: userId,
