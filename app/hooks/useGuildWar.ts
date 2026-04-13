@@ -42,7 +42,18 @@ export function useGuildWar(guildId: string | null) {
   const [activeWar, setActiveWar] = useState<GuildWar | null>(null);
   const [duels, setDuels] = useState<DuelResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inQueue, setInQueue] = useState(false);
   const supabase = createClient();
+
+  const checkQueueStatus = useCallback(async () => {
+    if (!guildId) return;
+    const { data } = await supabase
+      .from("guild_war_queue")
+      .select("id")
+      .eq("guild_id", guildId)
+      .single();
+    setInQueue(!!data);
+  }, [guildId, supabase]);
 
   const fetchActiveWar = useCallback(async () => {
     if (!guildId) {
@@ -92,8 +103,10 @@ export function useGuildWar(guildId: string | null) {
     } catch {
       setActiveWar(null);
     }
+    // Also check queue status
+    await checkQueueStatus();
     setLoading(false);
-  }, [guildId, supabase]);
+  }, [guildId, supabase, checkQueueStatus]);
 
   useEffect(() => {
     fetchActiveWar();
@@ -261,26 +274,123 @@ export function useGuildWar(guildId: string | null) {
 
   const fetchEnemyMembers = useCallback(
     async (enemyGuildId: string) => {
-      const { data } = await supabase
+      // Fetch members first
+      const { data: memberRows } = await supabase
         .from("guild_members")
-        .select("user_id, profile:profiles(id, display_name)")
+        .select("user_id")
         .eq("guild_id", enemyGuildId);
 
-      return (data || []).map((m: Record<string, unknown>) => ({
-        user_id: m.user_id as string,
-        display_name:
-          (m.profile as Record<string, unknown>)?.display_name as string ||
-          "Unknown",
+      const members = memberRows || [];
+      if (members.length === 0) return [];
+
+      // Fetch profiles separately (avoids FK join issues)
+      const userIds = members.map((m: { user_id: string }) => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+
+      const profileMap: Record<string, string> = {};
+      if (profiles) {
+        for (const p of profiles) {
+          profileMap[p.id] = p.display_name || "Unknown";
+        }
+      }
+
+      return members.map((m: { user_id: string }) => ({
+        user_id: m.user_id,
+        display_name: profileMap[m.user_id] || "Unknown",
       }));
     },
     [supabase]
   );
 
+  const joinQueue = useCallback(async () => {
+    if (!guildId) return;
+
+    // Insert ourselves into the queue
+    const { error: insertError } = await supabase
+      .from("guild_war_queue")
+      .insert({ guild_id: guildId });
+
+    if (insertError) {
+      // Already in queue is fine
+      if (insertError.code === "23505") {
+        setInQueue(true);
+      } else {
+        throw insertError;
+      }
+    }
+
+    setInQueue(true);
+
+    // Check if there's another guild waiting in the queue
+    const { data: waitingGuilds } = await supabase
+      .from("guild_war_queue")
+      .select("guild_id")
+      .neq("guild_id", guildId)
+      .order("joined_at", { ascending: true })
+      .limit(1);
+
+    if (waitingGuilds && waitingGuilds.length > 0) {
+      const opponentId = waitingGuilds[0].guild_id;
+
+      // Remove both guilds from queue
+      await supabase
+        .from("guild_war_queue")
+        .delete()
+        .in("guild_id", [guildId, opponentId]);
+
+      // Create the war
+      const endsAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      const { data: war, error: warError } = await supabase
+        .from("guild_wars")
+        .insert({
+          attacker_guild_id: guildId,
+          defender_guild_id: opponentId,
+          ends_at: endsAt,
+        })
+        .select(
+          "*, attacker_guild:guilds!attacker_guild_id(*), defender_guild:guilds!defender_guild_id(*)"
+        )
+        .single();
+
+      if (warError) throw warError;
+      setActiveWar(war as GuildWar);
+      setInQueue(false);
+      return;
+    }
+
+    // No match yet - we stay in queue
+  }, [guildId, supabase]);
+
+  const leaveQueue = useCallback(async () => {
+    if (!guildId) return;
+    await supabase
+      .from("guild_war_queue")
+      .delete()
+      .eq("guild_id", guildId);
+    setInQueue(false);
+  }, [guildId, supabase]);
+
+  // Poll for match while in queue
+  useEffect(() => {
+    if (!inQueue || activeWar) return;
+    const interval = setInterval(async () => {
+      // Check if we got matched (war created by another guild finding us)
+      await fetchActiveWar();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [inQueue, activeWar, fetchActiveWar]);
+
   return {
     activeWar,
     duels,
     loading,
+    inQueue,
     declareWar,
+    joinQueue,
+    leaveQueue,
     startDuel,
     fetchWarDuels,
     fetchGuildLeaderboard,

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useGuildWar, type DuelResult } from "../../hooks/useGuildWar";
 import DuelAnimation from "./DuelAnimation";
 import WarLeaderboard from "./WarLeaderboard";
-import type { GuildWar as GuildWarType, Guild, HeroState } from "../../types";
+import type { GuildWar as GuildWarType, HeroState } from "../../types";
 
 interface GuildWarProps {
   guildId: string;
@@ -37,7 +37,9 @@ export default function GuildWarDashboard({
     activeWar,
     duels,
     loading,
-    declareWar,
+    inQueue,
+    joinQueue,
+    leaveQueue,
     startDuel,
     fetchWarDuels,
     fetchWarHistory,
@@ -46,9 +48,6 @@ export default function GuildWarDashboard({
   } = useGuildWar(guildId);
 
   const [tab, setTab] = useState<"war" | "leaderboard">("war");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Guild[]>([]);
-  const [searching, setSearching] = useState(false);
   const [warHistory, setWarHistory] = useState<GuildWarType[]>([]);
   const [enemyMembers, setEnemyMembers] = useState<EnemyMember[]>([]);
   const [countdown, setCountdown] = useState("");
@@ -59,7 +58,7 @@ export default function GuildWarDashboard({
     defenderName: string;
   } | null>(null);
   const [dueling, setDueling] = useState(false);
-  const [declaring, setDeclaring] = useState(false);
+  const [queueing, setQueueing] = useState(false);
   const [error, setError] = useState("");
 
   const canDeclare = userRole === "captain" || userRole === "council";
@@ -119,44 +118,29 @@ export default function GuildWarDashboard({
     }
   }, [activeWar, enemyGuildId, fetchWarDuels, fetchEnemyMembers, fetchWarHistory]);
 
-  // Guild search
-  const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
+  // (search and direct declare removed — matchmaking queue handles war creation)
+
+  const handleJoinQueue = useCallback(async () => {
+    setQueueing(true);
     setError("");
     try {
-      const { createClient } = await import("../../lib/supabase/client");
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("guilds")
-        .select("*")
-        .neq("id", guildId)
-        .ilike("name", `%${searchQuery.trim()}%`)
-        .limit(10);
-      setSearchResults((data || []) as Guild[]);
-    } catch {
-      setError("Search failed. Try again.");
+      await joinQueue();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to join queue.");
     }
-    setSearching(false);
-  }, [searchQuery, guildId]);
+    setQueueing(false);
+  }, [joinQueue]);
 
-  const handleDeclareWar = useCallback(
-    async (targetId: string) => {
-      setDeclaring(true);
-      setError("");
-      try {
-        await declareWar(targetId);
-        setSearchResults([]);
-        setSearchQuery("");
-      } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "Failed to declare war."
-        );
-      }
-      setDeclaring(false);
-    },
-    [declareWar]
-  );
+  const handleLeaveQueue = useCallback(async () => {
+    setQueueing(true);
+    setError("");
+    try {
+      await leaveQueue();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to leave queue.");
+    }
+    setQueueing(false);
+  }, [leaveQueue]);
 
   const handleDuel = useCallback(
     async (target: EnemyMember) => {
@@ -548,7 +532,7 @@ export default function GuildWarDashboard({
       ) : (
         /* ========== NO ACTIVE WAR ========== */
         <div>
-          {/* Declare War */}
+          {/* Matchmaking Queue */}
           {canDeclare && (
             <div
               style={{
@@ -559,112 +543,129 @@ export default function GuildWarDashboard({
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  marginBottom: 12,
-                  textAlign: "center",
-                }}
-              >
-                Declare War
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  placeholder="Search for a guild..."
-                  style={{
-                    flex: 1,
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.15)",
-                    borderRadius: 8,
-                    padding: "10px 14px",
-                    color: "#fff",
-                    fontSize: 14,
-                    fontFamily: "inherit",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  onClick={handleSearch}
-                  disabled={searching || !searchQuery.trim()}
-                  style={{
-                    background: "rgba(244,67,54,0.2)",
-                    border: "1px solid rgba(244,67,54,0.4)",
-                    borderRadius: 8,
-                    padding: "10px 18px",
-                    color: "#f44336",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
-                    cursor:
-                      searching || !searchQuery.trim() ? "default" : "pointer",
-                    opacity: searching || !searchQuery.trim() ? 0.5 : 1,
-                  }}
-                >
-                  {searching ? "..." : "Search"}
-                </button>
-              </div>
-
-              {/* Search results */}
-              {searchResults.length > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                  }}
-                >
-                  {searchResults.map((g) => (
-                    <div
-                      key={g.id}
+              {inQueue ? (
+                /* In Queue - Searching for opponent */
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 700,
+                      marginBottom: 8,
+                    }}
+                  >
+                    Searching for Opponent...
+                  </div>
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.4)",
+                      fontSize: 13,
+                      marginBottom: 16,
+                    }}
+                  >
+                    Waiting in matchmaking queue. A war will start when another
+                    guild joins!
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      gap: 8,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <span
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "10px 14px",
-                        background: "rgba(255,255,255,0.04)",
-                        borderRadius: 8,
-                        border: "1px solid rgba(255,255,255,0.06)",
+                        display: "inline-block",
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "#ffa726",
+                        animation: "pulse 1.4s ease-in-out infinite",
                       }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>
-                          {g.name}
-                        </div>
-                        <div style={{ fontSize: 11, opacity: 0.5 }}>
-                          Lv.{g.level} &middot; {g.member_count} members
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeclareWar(g.id)}
-                        disabled={declaring}
-                        style={{
-                          background: "rgba(244,67,54,0.3)",
-                          border: "1px solid #f44336",
-                          borderRadius: 8,
-                          padding: "6px 14px",
-                          color: "#fff",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          fontFamily: "inherit",
-                          cursor: declaring ? "default" : "pointer",
-                          opacity: declaring ? 0.5 : 1,
-                        }}
-                      >
-                        {declaring ? "..." : "Declare War"}
-                      </button>
-                    </div>
-                  ))}
+                    />
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "#ffa726",
+                        animation: "pulse 1.4s ease-in-out 0.2s infinite",
+                      }}
+                    />
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "#ffa726",
+                        animation: "pulse 1.4s ease-in-out 0.4s infinite",
+                      }}
+                    />
+                  </div>
+                  <style>{`@keyframes pulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }`}</style>
+                  <button
+                    onClick={handleLeaveQueue}
+                    disabled={queueing}
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: 8,
+                      padding: "10px 24px",
+                      color: "#fff",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      fontFamily: "inherit",
+                      cursor: queueing ? "default" : "pointer",
+                      opacity: queueing ? 0.5 : 1,
+                    }}
+                  >
+                    {queueing ? "..." : "Leave Queue"}
+                  </button>
+                </div>
+              ) : (
+                /* Not in queue - show Declare War button */
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 700,
+                      marginBottom: 4,
+                    }}
+                  >
+                    Declare War
+                  </div>
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.4)",
+                      fontSize: 12,
+                      marginBottom: 16,
+                    }}
+                  >
+                    Join the matchmaking queue to be paired with a rival guild.
+                    War lasts 30 minutes!
+                  </div>
+                  <button
+                    onClick={handleJoinQueue}
+                    disabled={queueing}
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(244,67,54,0.4), rgba(244,67,54,0.2))",
+                      border: "1px solid #f44336",
+                      borderRadius: 10,
+                      padding: "14px 32px",
+                      color: "#fff",
+                      fontSize: 16,
+                      fontWeight: 700,
+                      fontFamily: "inherit",
+                      cursor: queueing ? "default" : "pointer",
+                      opacity: queueing ? 0.5 : 1,
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {queueing ? "Joining..." : "Find Opponent"}
+                  </button>
                 </div>
               )}
             </div>
