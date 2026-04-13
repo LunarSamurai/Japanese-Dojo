@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s http://localhost:3001)",
+      "Bash(where node:*)",
+      "Bash(taskkill //PID 26320 //F)",
+      "Bash(taskkill /PID 46076 /F)",
+      "WebSearch",
+      "Bash(wc -l /e/Projects/japanese-dojo/app/components/*.tsx)",
+      "WebFetch(domain:quartet.japantimes.co.jp)",
+      "WebFetch(domain:www.tofugu.com)",
+      "WebFetch(domain:omgjapan.com)",
+      "WebFetch(domain:wp.stolaf.edu)",
+      "WebFetch(domain:learnjapaneseaz.com)",
+      "WebFetch(domain:sethclydesdale.github.io)",
+      "WebFetch(domain:www.denisowski.org)",
+      "WebFetch(domain:bunpro.jp)",
+      "WebFetch(domain:community.wanikani.com)",
+      "WebFetch(domain:www.csus.edu)",
+      "WebFetch(domain:www.kanshudo.com)",
+      "WebFetch(domain:apieceofsushi.com)",
+      "WebFetch(domain:www.jlptbooks.com)",
+      "WebFetch(domain:www.theworldinjapanese.com)",
+      "WebFetch(domain:pdfcoffee.com)",
+      "Bash(ls -la E:/Projects/japanese-dojo/app/data/tobira*)",
+      "Bash(ls -la E:/Projects/japanese-dojo/app/data/quartet*)",
+      "Bash(wc -l E:/Projects/japanese-dojo/app/data/*.ts)",
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\")",
+      "Bash(taskkill /PID 28372 /F)",
+      "Bash(taskkill /PID 31432 /F)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 41460 /T /F)",
+      "Bash(cmd.exe /c \"taskkill /PID 41460 /T /F\")",
+      "Bash(npm install:*)",
+      "Bash(node -e ':*)"
+    ]
+  }
+}
