@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useSocial } from "../../hooks/useSocial";
 import type { Comment } from "../../types";
 import { Avatar } from "../Avatar";
+import { ClickableUsername } from "../UserPopup";
 
 interface CommentListProps {
   postId: string;
@@ -109,15 +110,7 @@ export function CommentList({ postId, userId }: CommentListProps) {
               <Avatar url={avatarUrl} name={name} size={24} />
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                  <span
-                    style={{
-                      color: "#1a1523",
-                      fontWeight: 700,
-                      fontSize: 12,
-                    }}
-                  >
-                    {name}
-                  </span>
+                  <ClickableUsername userId={c.author_id} name={name} currentUserId={userId} style={{ color: "#1a1523", fontSize: 12 }} />
                   <span style={{ color: "#8a7e92", fontSize: 10 }}>
                     {relativeTime(c.created_at)}
                   </span>

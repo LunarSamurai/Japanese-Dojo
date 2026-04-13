@@ -1,12 +1,14 @@
 "use client";
 import type { GuildMember, UserProfile } from "../../types";
 import { Avatar } from "../Avatar";
+import { ClickableUsername } from "../UserPopup";
 
 interface Props {
   members: (GuildMember & { profile?: UserProfile })[];
+  userId?: string | null;
 }
 
-export function GuildLeaderboard({ members }: Props) {
+export function GuildLeaderboard({ members, userId }: Props) {
   const sorted = [...members].sort((a, b) => b.xp_contributed - a.xp_contributed);
   const medals = ["🥇", "🥈", "🥉"];
 
@@ -32,7 +34,7 @@ export function GuildLeaderboard({ members }: Props) {
           </div>
           <Avatar url={m.profile?.avatar_url} name={m.profile?.display_name} size={32} />
           <div style={{ flex: 1 }}>
-            <div style={{ color: "white", fontSize: 12, fontWeight: 700 }}>{m.profile?.display_name || "Unknown"}</div>
+            <ClickableUsername userId={m.user_id} name={m.profile?.display_name || "Unknown"} currentUserId={userId ?? null} style={{ color: "white", fontSize: 12 }} />
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>
               {m.role === "captain" ? "👑 " : m.role === "council" ? "🎖️ " : ""}{m.role}
             </div>

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "../../lib/supabase/client";
 import { Avatar } from "../Avatar";
+import { ClickableUsername } from "../UserPopup";
 
 interface Message {
   id: string;
@@ -95,9 +96,7 @@ export function GuildChat({ guildId, userId, sendMessage }: GuildChatProps) {
               <Avatar url={m.profile?.avatar_url} name={m.profile?.display_name} size={28} />
               <div style={{ maxWidth: "70%" }}>
                 <div style={{ display: "flex", gap: 6, alignItems: "baseline", flexDirection: isMe ? "row-reverse" : "row" }}>
-                  <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 10, fontWeight: 700 }}>
-                    {m.profile?.display_name || "Unknown"}
-                  </span>
+                  <ClickableUsername userId={m.author_id} name={m.profile?.display_name || "Unknown"} currentUserId={userId} style={{ color: "rgba(255,255,255,0.6)", fontSize: 10 }} />
                   <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 9 }}>{timeAgo(m.created_at)}</span>
                 </div>
                 <div style={{

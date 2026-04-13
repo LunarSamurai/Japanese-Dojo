@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { Guild, GuildMember, UserProfile } from "../../types";
 import { Avatar } from "../Avatar";
+import { ClickableUsername } from "../UserPopup";
 import { GuildChat } from "./GuildChat";
 import { GuildSettings } from "./GuildSettings";
 import { GuildLeaderboard } from "./GuildLeaderboard";
@@ -111,7 +112,7 @@ export function GuildDashboard({ guild, members, myRole, userId, sendMessage, ki
       <div style={{
         background: "radial-gradient(ellipse at 50% 35%, #1e293b 0%, #0f172a 50%, #020617 100%)",
         borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column",
-        minHeight: 650, position: "relative",
+        minHeight: "calc(100vh - 80px)", position: "relative",
         border: "1px solid rgba(255,255,255,0.08)",
       }}>
         {/* Cloud particles */}
@@ -191,7 +192,7 @@ export function GuildDashboard({ guild, members, myRole, userId, sendMessage, ki
   const darkWrap = (title: string, icon: string, children: React.ReactNode) => (
     <div style={{
       background: "radial-gradient(ellipse at 50% 20%, #1e293b 0%, #0f172a 60%, #020617 100%)",
-      borderRadius: 20, padding: 24, minHeight: 500,
+      borderRadius: 20, padding: 24, minHeight: "calc(100vh - 80px)",
       border: "1px solid rgba(255,255,255,0.08)",
     }}>
       {backBtn}
@@ -210,7 +211,7 @@ export function GuildDashboard({ guild, members, myRole, userId, sendMessage, ki
           }}>
             <Avatar url={m.profile?.avatar_url} name={m.profile?.display_name} size={36} />
             <div style={{ flex: 1 }}>
-              <div style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{m.profile?.display_name || "Unknown"}</div>
+              <ClickableUsername userId={m.user_id} name={m.profile?.display_name || "Unknown"} currentUserId={userId} style={{ color: "white", fontSize: 13 }} />
               <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>
                 {m.role === "captain" ? "👑 Captain" : m.role === "council" ? "🎖️ Council" : "Member"} · {m.xp_contributed.toLocaleString()} XP
               </div>
@@ -247,7 +248,7 @@ export function GuildDashboard({ guild, members, myRole, userId, sendMessage, ki
 
   if (subView === "leaderboard") {
     return darkWrap("Leaderboard", "🏆", (
-      <GuildLeaderboard members={members} />
+      <GuildLeaderboard members={members} userId={userId} />
     ));
   }
 

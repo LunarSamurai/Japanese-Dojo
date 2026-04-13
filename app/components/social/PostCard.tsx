@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Post } from "../../types";
 import { CommentList } from "./CommentList";
 import { Avatar } from "../Avatar";
+import { ClickableUsername } from "../UserPopup";
 
 interface PostCardProps {
   post: Post;
@@ -57,11 +58,7 @@ export function PostCard({ post, userId, onLike, onUnlike }: PostCardProps) {
       >
         <Avatar url={avatarUrl} name={authorName} size={32} />
         <div style={{ flex: 1 }}>
-          <div
-            style={{ color: "#1a1523", fontWeight: 700, fontSize: 14 }}
-          >
-            {authorName}
-          </div>
+          <ClickableUsername userId={post.author_id} name={authorName} currentUserId={userId} style={{ color: "#1a1523", fontSize: 14 }} />
           <div style={{ color: "#8a7e92", fontSize: 11 }}>
             {relativeTime(post.created_at)}
           </div>

@@ -35,7 +35,7 @@ export function GuildFinder({ searchGuilds, browseGuilds, joinGuild, onCreate }:
   return (
     <div style={{
       background: "radial-gradient(ellipse at 50% 30%, #1e293b 0%, #0f172a 60%, #020617 100%)",
-      borderRadius: 20, padding: 28, minHeight: 500,
+      borderRadius: 20, padding: 28, minHeight: "calc(100vh - 80px)",
       border: "1px solid rgba(255,255,255,0.08)",
     }}>
       <div style={{ textAlign: "center", marginBottom: 24 }}>
