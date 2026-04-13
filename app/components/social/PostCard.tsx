@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { Post } from "../../types";
 import { CommentList } from "./CommentList";
+import { Avatar } from "../Avatar";
 
 interface PostCardProps {
   post: Post;
@@ -54,35 +55,7 @@ export function PostCard({ post, userId, onLike, onUnlike }: PostCardProps) {
           marginBottom: 12,
         }}
       >
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={authorName}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              objectFit: "cover",
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg,#c2255c,#7e3794)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            {initial}
-          </div>
-        )}
+        <Avatar url={avatarUrl} name={authorName} size={32} />
         <div style={{ flex: 1 }}>
           <div
             style={{ color: "#1a1523", fontWeight: 700, fontSize: 14 }}

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useProfile } from "../../hooks/useProfile";
 import { useSocial } from "../../hooks/useSocial";
 import { createClient } from "../../lib/supabase/client";
+import { Avatar } from "../Avatar";
 
 interface PublicProfileProps {
   userId: string | null;
@@ -89,37 +90,7 @@ export function PublicProfile({ userId }: PublicProfileProps) {
           marginBottom: 20,
         }}
       >
-        {profile.avatar_url ? (
-          <img
-            src={profile.avatar_url}
-            alt={profile.display_name}
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: "3px solid #e8e0e4",
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg,#c2255c,#7e3794)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontWeight: 900,
-              fontSize: 28,
-              border: "3px solid #e8e0e4",
-            }}
-          >
-            {initial}
-          </div>
-        )}
+        <Avatar url={profile.avatar_url} name={profile.display_name} size={72} style={{ border: "3px solid #e8e0e4" }} />
 
         <div
           style={{

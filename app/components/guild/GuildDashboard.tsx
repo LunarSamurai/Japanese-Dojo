@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { Guild, GuildMember, UserProfile } from "../../types";
+import { Avatar } from "../Avatar";
 import { GuildChat } from "./GuildChat";
 import { GuildSettings } from "./GuildSettings";
 import { GuildLeaderboard } from "./GuildLeaderboard";
@@ -207,14 +208,7 @@ export function GuildDashboard({ guild, members, myRole, userId, sendMessage, ki
             background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 16px",
             display: "flex", alignItems: "center", gap: 12, border: "1px solid rgba(255,255,255,0.06)",
           }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: "linear-gradient(135deg,#c2255c,#7e3794)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "white", fontSize: 14, fontWeight: 800,
-            }}>
-              {(m.profile?.display_name || "?")[0].toUpperCase()}
-            </div>
+            <Avatar url={m.profile?.avatar_url} name={m.profile?.display_name} size={36} />
             <div style={{ flex: 1 }}>
               <div style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{m.profile?.display_name || "Unknown"}</div>
               <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>

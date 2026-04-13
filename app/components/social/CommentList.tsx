@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useSocial } from "../../hooks/useSocial";
 import type { Comment } from "../../types";
+import { Avatar } from "../Avatar";
 
 interface CommentListProps {
   postId: string;
@@ -105,37 +106,7 @@ export function CommentList({ postId, userId }: CommentListProps) {
                 alignItems: "flex-start",
               }}
             >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={name}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                    flexShrink: 0,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg,#c2255c,#7e3794)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white",
-                    fontWeight: 700,
-                    fontSize: 11,
-                    flexShrink: 0,
-                  }}
-                >
-                  {initial}
-                </div>
-              )}
+              <Avatar url={avatarUrl} name={name} size={24} />
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   <span

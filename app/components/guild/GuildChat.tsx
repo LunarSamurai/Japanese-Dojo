@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "../../lib/supabase/client";
+import { Avatar } from "../Avatar";
 
 interface Message {
   id: string;
@@ -91,14 +92,7 @@ export function GuildChat({ guildId, userId, sendMessage }: GuildChatProps) {
           const isMe = m.author_id === userId;
           return (
             <div key={m.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", flexDirection: isMe ? "row-reverse" : "row" }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-                background: isMe ? "linear-gradient(135deg,#c2255c,#7e3794)" : "rgba(255,255,255,0.1)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "white", fontSize: 11, fontWeight: 800,
-              }}>
-                {(m.profile?.display_name || "?")[0].toUpperCase()}
-              </div>
+              <Avatar url={m.profile?.avatar_url} name={m.profile?.display_name} size={28} />
               <div style={{ maxWidth: "70%" }}>
                 <div style={{ display: "flex", gap: 6, alignItems: "baseline", flexDirection: isMe ? "row-reverse" : "row" }}>
                   <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 10, fontWeight: 700 }}>
