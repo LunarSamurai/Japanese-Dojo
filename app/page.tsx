@@ -89,13 +89,22 @@ export default function NihongoDojo() {
 
   const handleAuthSuccess = useCallback(() => {
     setShowIntro(false);
-    // Always force placement test for new users (0 XP, 0 lessons)
-    // Clear any stale placement data from previous users/testing
-    if (gs.xp === 0 && gs.completed.size === 0) {
-      if (typeof window !== "undefined") localStorage.removeItem(`nihongo-dojo-placement-${user?.id || "anon"}`);
+  }, []);
+
+  // Check if new user needs placement test — ONLY after auth + game state fully loaded
+  const placementCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!loaded || !user || placementCheckedRef.current) return;
+    placementCheckedRef.current = true;
+
+    const placementKey = `nihongo-dojo-placement-${user.id}`;
+    const hasPlacement = typeof window !== "undefined" && localStorage.getItem(placementKey);
+
+    // Only show placement if: no placement key exists AND no progress (truly new user)
+    if (!hasPlacement && gs.xp === 0 && gs.completed.size === 0) {
       setNeedsPlacement(true);
     }
-  }, [gs.xp, gs.completed.size]);
+  }, [loaded, user, gs.xp, gs.completed.size]);
 
   // Show loading screen while auth is checking
   if (authLoading || !loaded) {
