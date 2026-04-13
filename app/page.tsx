@@ -175,7 +175,7 @@ export default function NihongoDojo() {
         {view === "temple" && <TempleView gs={gs} setGs={setGs} showToast={showToast} onBossEncounter={(wave) => setBossWave(wave)} setView={setView} />}
         {view === "hero" && <HeroView gs={gs} setGs={setGs} showToast={showToast} setView={setView} />}
         {view === "skilltree" && <SkillTreeView gs={gs} setGs={setGs} showToast={showToast} setView={setView} />}
-        {view === "social" && <SocialView userId={user?.id ?? null} />}
+        {view === "social" && <SocialView userId={user?.id ?? null} gs={gs} />}
         {view === "shop" && <Shop gs={gs} setGs={setGs} buyUpgrade={buyUpgrade} showToast={showToast} />}
         {view === "profile" && <Profile gs={gs} userId={user?.id ?? null} onSignOut={signOut} />}
       </div>

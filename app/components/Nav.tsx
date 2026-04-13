@@ -17,7 +17,7 @@ const NAV_ITEMS: { id: View; icon: string; l: string }[] = [
   { id: "review", icon: "\uD83D\uDCDD", l: "Review" },
   { id: "temple", icon: "\u26E9\uFE0F", l: "Temple" },
   { id: "hero", icon: "\u2694\uFE0F", l: "Hero" },
-  { id: "social", icon: "\uD83D\uDCAC", l: "Social" },
+  { id: "social", icon: "\uD83C\uDFEF", l: "Guild" },
   { id: "shop", icon: "\uD83C\uDFEA", l: "Shop" },
   { id: "profile", icon: "\uD83C\uDF8C", l: "Profile" },
 ];

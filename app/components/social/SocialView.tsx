@@ -9,9 +9,10 @@ import { useGuild } from "../../hooks/useGuild";
 
 interface SocialViewProps {
   userId: string | null;
+  gs: import("../../types").GameState;
 }
 
-export function SocialView({ userId }: SocialViewProps) {
+export function SocialView({ userId, gs }: SocialViewProps) {
   const [tab, setTab] = useState<"feed" | "guild" | "profile">("feed");
   const [guildSubView, setGuildSubView] = useState<"browse" | "create">("browse");
   const guildState = useGuild(userId);
@@ -27,10 +28,10 @@ export function SocialView({ userId }: SocialViewProps) {
           marginBottom: 4,
         }}
       >
-        🌸 Social
+        🏯 Guild Hall
       </div>
       <div style={{ color: "#564a5e", fontSize: 13, marginBottom: 16 }}>
-        Connect with fellow learners
+        Your guild, social feed, and community
       </div>
 
       {/* Tabs */}
@@ -82,6 +83,7 @@ export function SocialView({ userId }: SocialViewProps) {
             promoteMember={guildState.promoteMember}
             leaveGuild={guildState.leaveGuild}
             refresh={guildState.refresh}
+            gs={gs}
           />
         ) : guildSubView === "create" ? (
           <CreateGuild createGuild={guildState.createGuild} onBack={() => setGuildSubView("browse")} />

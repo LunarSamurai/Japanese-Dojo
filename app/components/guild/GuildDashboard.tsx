@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
-import type { Guild, GuildMember, UserProfile } from "../../types";
+import type { Guild, GuildMember, UserProfile, GameState } from "../../types";
 import { Avatar } from "../Avatar";
 import { ClickableUsername } from "../UserPopup";
 import { GuildChat } from "./GuildChat";
 import { GuildSettings } from "./GuildSettings";
 import { GuildLeaderboard } from "./GuildLeaderboard";
+import GuildWarDashboard from "./GuildWar";
 
 interface GuildDashboardProps {
   guild: Guild;
@@ -17,6 +18,7 @@ interface GuildDashboardProps {
   promoteMember: (userId: string, role: "council" | "member") => Promise<void>;
   leaveGuild: () => Promise<void>;
   refresh: () => Promise<void>;
+  gs: GameState;
 }
 
 type SubView = "overview" | "members" | "chat" | "leaderboard" | "wars" | "settings";
@@ -92,7 +94,7 @@ function CloudButton({ label, icon, active, onClick, x, y }: { label: string; ic
   );
 }
 
-export function GuildDashboard({ guild, members, myRole, userId, sendMessage, kickMember, promoteMember, leaveGuild, refresh }: GuildDashboardProps) {
+export function GuildDashboard({ guild, members, myRole, userId, sendMessage, kickMember, promoteMember, leaveGuild, refresh, gs }: GuildDashboardProps) {
   const [subView, setSubView] = useState<SubView>("overview");
   const isLeader = myRole === "captain" || myRole === "council";
 
@@ -236,6 +238,17 @@ export function GuildDashboard({ guild, members, myRole, userId, sendMessage, ki
             )}
           </div>
         ))}
+        {/* Leave guild button */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 16, marginTop: 16 }}>
+          <button onClick={leaveGuild} style={{
+            background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.2)",
+            color: "#ef4444", padding: "10px 20px", borderRadius: 10,
+            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            width: "100%",
+          }}>
+            Leave Guild
+          </button>
+        </div>
       </div>
     ));
   }
@@ -254,21 +267,13 @@ export function GuildDashboard({ guild, members, myRole, userId, sendMessage, ki
 
   if (subView === "wars") {
     return darkWrap("Guild Wars", "⚔️", (
-      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, textAlign: "center", padding: 40 }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>⚔️</div>
-        <div style={{ color: "white", fontSize: 18, fontWeight: 800, fontFamily: "serif", marginBottom: 8 }}>Guild Wars</div>
-        <div>Declare war on rival guilds to test your combined strength!</div>
-        {isLeader && (
-          <button className="btn-glow" style={{
-            background: "linear-gradient(135deg,#ef4444,#dc2626)", color: "white",
-            border: "none", padding: "12px 28px", borderRadius: 10,
-            fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-            marginTop: 20, boxShadow: "0 4px 16px rgba(239,68,68,0.3)",
-          }}>
-            Declare War
-          </button>
-        )}
-      </div>
+      <GuildWarDashboard
+        guildId={guild.id}
+        userId={userId || ""}
+        userName={members.find(m => m.user_id === userId)?.profile?.display_name || "You"}
+        userHero={gs.hero}
+        userRole={myRole}
+      />
     ));
   }
 
